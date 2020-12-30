@@ -101,17 +101,17 @@ if __name__ == '__main__':
         model_name='multi_intent.pth',
         vocab_path='data/MixATIS/vocab.txt',
         intent_path='data/MixATIS/intent.txt',
-        batch_size=64,
+        batch_size=128,
         max_seq_len=80,
         early_stop_max_epochs=3,
-        lr=0.001,
-        num_epochs=2,
+        lr=0.01,
+        num_epochs=100,
         checkpoint=False,
         thresh=0.6,
         # model
-        word_embed_size=50,
-        hidden_size=50,
-        n_rnn_layers=1,
+        word_embed_size=100,
+        hidden_size=100,
+        n_rnn_layers=2,
         dropout=0.3,
         mode='all'
     )
