@@ -104,7 +104,7 @@ if __name__ == '__main__':
         batch_size=128,
         max_seq_len=80,
         early_stop_max_epochs=3,
-        lr=0.01,
+        lr=0.1,
         num_epochs=100,
         checkpoint=False,
         thresh=0.6,
