@@ -1,0 +1,3 @@
+# Soldier AI
+
+## Model	
