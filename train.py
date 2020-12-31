@@ -4,14 +4,14 @@ import pandas as pd
 from argparse import Namespace
 from torch.utils.data import DataLoader
 import torch.optim as optim
-from multi_intent_model import MultiIntentModel
+from model import MultiIntentModel
 from dictionary import Dictionary, TokenDictionary
 import torch
 from utils import build_vocab, get_label_dict, load_from_txt
 from utils import make_train_state, update_train_state
 from utils import load_w2c, get_n_params
 from dataset import LabelDataset
-from multi_label_metrics import get_multi_label_metrics
+from metrics import get_multi_label_metrics
 
 
 def train(
@@ -93,14 +93,15 @@ def train(
 
 if __name__ == '__main__':
     args = Namespace(
-        train_path='data/MixATIS/train.txt',
-        val_path='data/MixATIS/dev.txt',
-        test_path='data/MixATIS/test.txt',
+        data_path='data/ATIS',
+        train_path='data/ATIS/train.txt',
+        val_path='data/ATIS/dev.txt',
+        test_path='data/ATIS/test.txt',
         model_dir='models/',
         w2c_path='models/pre_trained',
         model_name='multi_intent.pth',
-        vocab_path='data/MixATIS/vocab.txt',
-        intent_path='data/MixATIS/intent.txt',
+        vocab_path='data/ATIS/vocab.txt',
+        intent_path='data/ATIS/intent.txt',
         batch_size=128,
         max_seq_len=80,
         early_stop_max_epochs=3,
@@ -122,18 +123,21 @@ if __name__ == '__main__':
     val_df = load_from_txt(args.val_path)
     test_df = load_from_txt(args.test_path)
 
+    train_df.to_csv(args.data_path + '/train.csv', index=False)
+    val_df.to_csv(args.data_path + '/val.csv', index=False)
+    test_df.to_csv(args.data_path + '/test.csv', index=False)
     # Load vocab and label from file, if not exist create from data.
     if os.path.exists(args.vocab_path) is True:
         seq_vocab = TokenDictionary.load(args.vocab_path)
     else:
         seq_vocab = build_vocab(train_df['text'].tolist())
-        seq_vocab.save('data/ATIS/atis_vocab.txt', delimiter='\t')
+        seq_vocab.save(args.data_path + '/vocab.txt', delimiter='\t')
 
     if os.path.exists(args.intent_path) is True:
         label_dict = Dictionary.load(args.intent_path)
     else:
         label_dict = get_label_dict(pd.concat([train_df, test_df, val_df])['label'].tolist())
-        label_dict.save('data/ATIS/atis_intent.txt', delimiter='\t')
+        label_dict.save(args.data_path + '/intent.txt', delimiter='\t')
 
     # Create train, val, test dataset.
     train_dataset = LabelDataset(train_df, seq_vocab, label_dict, multi_label=True, max_seq_len=args.max_seq_len)

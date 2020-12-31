@@ -25,6 +25,7 @@ def load_from_txt(file_path, label_delimiter='#'):
             text.append(line[0])
             tags.append(line[1])
 
+
     return pd.DataFrame(final_list)
 
 
