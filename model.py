@@ -54,15 +54,15 @@ class MultiIntentModel(nn.Module):
             dropout=0.3,
             att_method='general',
             word2vec=None,
-            padding_idx=0,
+            padding_idx=1,
             device='cpu'
     ):
         super(MultiIntentModel, self).__init__()
         self.n_rnn_layer = n_rnn_layers
         self.hidden_size = hidden_size
         self.device = device
-        if word2vec is not None:
-            self.embedding = nn.Embedding(vocab_size, embed_size, padding_idx=padding_idx)
+        if word2vec is None:
+            self.embedding = nn.Embedding(vocab_size, embed_size, padding_idx=int(padding_idx))
         else:
             self.embedding = nn.Embedding.from_pretrained(word2vec, freeze=False, padding_idx=padding_idx)
         self.rnn = nn.LSTM(embed_size, hidden_size, n_rnn_layers,
