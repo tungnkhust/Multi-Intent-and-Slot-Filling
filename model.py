@@ -5,6 +5,8 @@ from torch import Tensor
 from torch.nn import init
 from nn import Attention
 from metrics import get_multi_label_metrics
+from torch.utils.data import DataLoader
+
 
 class MultiIntentModel(nn.Module):
     def __init__(
@@ -36,6 +38,8 @@ class MultiIntentModel(nn.Module):
         self.linear = nn.Linear(hidden_size*4, n_labels)
 
         self.init_weight()
+
+        self.to(device)
 
     def init_weight(self):
         for layer_p in self.rnn._all_weights:
@@ -74,22 +78,24 @@ class MultiIntentModel(nn.Module):
 
         return out
 
-    def forward_loss(self, word_vector, label, mask: Tensor = None):
-        out = self.forward(word_vector, mask)
+    def compute_loss(self, out, label, mask: Tensor = None):
         loss = nn.BCELoss(reduction='sum')(out, label)
-
         return loss
 
-    def validate(self, val_loader, thresh=0.8, device='cpu'):
+    def evaluate(self, test_dataset, thresh=0.8, batch_size=32):
         self.eval()
+
+        device = self.device
         y_pred = []
         y_true = []
 
+        test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False, drop_last=True)
+
         val_loss = 0.0
 
-        for i, (x_vector, y_vector, x_mask) in enumerate(val_loader):
+        for i, (x_vector, y_vector, x_mask) in enumerate(test_loader):
             out = self.forward(x_vector.to(device), x_mask.to(device))
-            loss = nn.BCELoss(reduction='sum')(out, y_vector.to(device))
+            loss = self.compute_loss(out, y_vector.to(device))
 
             y_pred.append((out > thresh).long())
             y_true.append(y_vector.long())
@@ -99,12 +105,13 @@ class MultiIntentModel(nn.Module):
         y_pred = torch.cat(y_pred, dim=-1).cpu().detach().numpy()
 
         acc, sub_acc, f1, precision, recall, hamming_loss = get_multi_label_metrics(y_true=y_true, y_pred=y_pred)
-        print("val loss:", val_loss)
-        print('f1: {}    precision: {}    recall: {}'.format(f1, precision, recall))
-        print('accuracy: {}    sub accuracy : {}    hamming loss: {}'.format(acc, sub_acc, hamming_loss))
-        print()
-
+        print('+----------+-----------+----------+---------+-------------+-------------+')
+        print('|f1_score  |precision  |recall    |accuracy |sub accuracy |hamming loss |')
+        print('+----------+-----------+----------+---------+-------------+-------------+')
+        print('|{:.4f}    |{:.4f}     |{:.4f}    |{:.4f}   |{:.4f}       |{:.4f}       |'.format(f1, precision, recall, acc, sub_acc, hamming_loss))
+        print('+----------+-----------+----------+---------+-------------+-------------+')
         return val_loss, f1, acc
 
+    
     def from_pretrained(self, model_path):
         self.load_state_dict(torch.load(model_path))

@@ -7,6 +7,8 @@ class Trainer:
         train_dataset,
         val_dataset,
         test_dataset,
+        optimizer,
+        scheduler,
         batch_size=32,
         num_epochs=100,
         clip_grad=5,
@@ -38,7 +40,6 @@ class Trainer:
            'accuracy_state': {'train': [], 'val': [],'best': 0.0},
         }
 
-
     def train():
         if os.path.exists(self.model_dir) is False:
             os.mkdir(self.model_dir)
@@ -50,9 +51,6 @@ class Trainer:
         val_loader = DataLoader(dataset=val_dataset, batch_size=self.batch_size, shuffle=False, drop_last=True)
 
         self.model.to(device)
-        optimizer = optim.Adam(model.parameters(), lr=self.learning_rate, weight_decay=1e-3)
-        # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1)
-        scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, steps_per_epoch=len(train_loader), epochs=self.num_epochs)
 
         val_loader = DataLoader(dataset=val_dataset, batch_size=self.batch_size, shuffle=False, drop_last=True)
 
@@ -80,12 +78,13 @@ class Trainer:
                 # update train loss state
                 self.loss_state['train'].append(train_loss)
 
-                optimizer.zero_grad()
+                self.optimizer.zero_grad()
 
                 # validate model
                 val_loss, f1, acc = self.model.validate(val_loader, thresh=self.thresh, device=device)
 
-                scheduler.step(val_loss)
+                # scheduler.step(val_loss)
+                self.scheduler.step()
 
                 self.loss_state['val'].append(val_loss)
                 self.f1_state['val'].append(val_loss)
@@ -159,4 +158,22 @@ class Trainer:
         if self.num_early_stop_epochs >= self.max_early_stop_epochs:
             self.stop_early = True
 
-    def state_dict(self):
+    def save_checkpoint(self, model_file: Union[str, Path]):
+        train_dataset = self.train_dataset
+        val_dataset = self.val_dataset
+        test_dataset = self.test_dataset
+        self.train_dataset = None
+        self.val_dataset = None
+        self.test_dataset = None
+        torch.save(self, str(model_file), pickle_protocol=4)
+        self.train_dataset = train_dataset
+        self.val_dataset = val_dataset
+        self.test_dataset = test_dataset
+
+    @classmethod
+    def load_checkpoint(cls, checkpoint: Union[Path, str], train_dataset, val_dataset, test_dataset):
+        trainer = torch.load(checkpoint)
+        trainer.train_dataset = train_dataset
+        trainer.val_dataset = val_dataset
+        trainer.test_dataset = test_dataset
+        return model

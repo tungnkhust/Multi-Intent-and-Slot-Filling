@@ -279,9 +279,15 @@ class LabelTagDataset(Dataset):
         row = self.data_df.iloc[index]
         x_tokens = row['text'].split(' ')
         y_labels = row['label'].split(' ')
+        yt_tags = row['tags'].split(' ')
         x_vector, x_mask = self.seq_vocab.encode(x_tokens, max_len=self.max_len_seq)
         y_vector = self.label_dict.encode(y_labels, self.multi_label)
-        return x_vector, y_vector, x_mask
+        yt_vector, _ = self.seq_vocab.encode(yt_tags, max_len=self.max_len_seq)
+        return {
+            'x': x_vector,
+            'y': (y_vector, yt_vector),
+            'mask': x_mask
+        }
 
     @classmethod
     def from_csv(cls, file_path: str):

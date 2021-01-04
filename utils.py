@@ -46,6 +46,14 @@ def get_label_dict(labels: List[str], delimiter=' '):
     return label_dict
 
 
+def get_tag_dict(bio_tags: List[str]):
+    tag_dict = TokenDictionary(unk_token=None, bos_token=None, eos_token=None)
+    for tag in bio_tags:
+        tag = tag.replace('\n', '')
+        tag_dict.add_items(tag.split(' '))
+    return tag_dict
+
+
 def load_w2c(w2c_path: str, token2idx, embed_size):
     w2c = {}
     with open(w2c_path, 'r') as pf:
@@ -102,7 +110,7 @@ def update_train_state(model, train_state, save_all_checkpoint=False):
         torch.save(model.state_dict(), train_state['model_dir'] + '/last_checkpoint.pth')
         loss_t = train_state['val_loss'][-1]
         if loss_t < train_state['early_stop_best_val_loss']:
-            print('Save best model at', train_state['model_dir'] + '/best_model.pth')
+            print('SAVE BEST MODEL AT', train_state['model_dir'] + '/best_model.pth')
             torch.save(model.state_dict(), train_state['model_dir'] + '/best_model.pth')
             train_state['early_stop_num_epoch'] = 0
             train_state['early_stop_best_val_loss'] = loss_t

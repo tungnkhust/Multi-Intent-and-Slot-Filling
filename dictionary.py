@@ -12,6 +12,12 @@ class Dictionary(object):
         self.item2idx = item2idx
         self.idx2item = {index: item for item, index in item2idx.items()}
 
+    def check_in(self, item):
+        if item in self.item2idx:
+            return True
+        else:
+            return False
+
     def add_item(self, item):
         """
         Add item into Dictionary.
