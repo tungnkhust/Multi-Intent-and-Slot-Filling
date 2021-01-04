@@ -92,16 +92,18 @@ def make_train_state(args):
 
 
 def update_train_state(model, train_state, save_all_checkpoint=False):
+    if save_all_checkpoint:
+            torch.save(model.state_dict(),
+                train_state['model_dir'] + '/checkpoint{}.pth'.format(train_state['epoch_index']))
+
     if train_state['epoch_index'] == 0:
         torch.save(model.state_dict(), train_state['model_dir'] + '/last_checkpoint.pth')
-
     else:
+        torch.save(model.state_dict(), train_state['model_dir'] + '/last_checkpoint.pth')
         loss_t = train_state['val_loss'][-1]
         if loss_t < train_state['early_stop_best_val_loss']:
-            if save_all_checkpoint:
-                torch.save(model.state_dict(),
-                           train_state['model_dir'] + '/checkpoint{}.pth'.format(train_state['epoch_index']))
-            torch.save(model.state_dict(), train_state['model_dir'] + '/last_checkpoint.pth')
+            print('Save best model at', train_state['model_dir'] + '/best_model.pth')
+            torch.save(model.state_dict(), train_state['model_dir'] + '/best_model.pth')
             train_state['early_stop_num_epoch'] = 0
             train_state['early_stop_best_val_loss'] = loss_t
         else:

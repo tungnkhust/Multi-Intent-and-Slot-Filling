@@ -237,3 +237,71 @@ class TagDataset(Dataset):
             char_vocab,
             tagger_dict
         )
+
+
+class LabelTagDataset(Dataset):
+    def __init__(
+            self,
+            data_df,
+            seq_vocab: TokenDictionary,
+            label_dict: Dictionary,
+            tag_dict: TokenDictionary,
+            max_seq_len: int = None,
+            multi_label=False
+    ):
+
+        self.data_df = data_df
+        self.seq_vocab = seq_vocab
+        self.label_dict = label_dict
+        self.multi_label = multi_label
+        if max_seq_len is not None:
+            self.max_len_seq = max_seq_len
+        else:
+            self.max_len_seq = self.compute_max_seq_len() + 1
+
+    def __len__(self):
+        return len(self.data_df)
+
+    def n_tokens(self):
+        return len(self.seq_vocab)
+
+    def n_labels(self):
+        return len(self.label_dict)
+
+    def compute_max_seq_len(self):
+        texts = self.data_df['text'].tolist()
+        max_seq_len = 0
+        for text in texts:
+            max_seq_len = max(max_seq_len, len(text.split(' ')))
+        return max_seq_len
+
+    def __getitem__(self, index):
+        row = self.data_df.iloc[index]
+        x_tokens = row['text'].split(' ')
+        y_labels = row['label'].split(' ')
+        x_vector, x_mask = self.seq_vocab.encode(x_tokens, max_len=self.max_len_seq)
+        y_vector = self.label_dict.encode(y_labels, self.multi_label)
+        return x_vector, y_vector, x_mask
+
+    @classmethod
+    def from_csv(cls, file_path: str):
+        data_df = pd.read_csv(file_path, usecols=['text'])
+
+        seq_vocab = TokenDictionary()
+        label_dict = Dictionary()
+
+        max_seq_len = 0
+        for i, row in data_df.iterrows():
+            tokens = row['text'].split(' ')
+            max_seq_len = max(max_seq_len, len(tokens))
+
+            seq_vocab.add_items(tokens)
+            labels = row['label'].split(' ')
+            label_dict.add_items(labels)
+
+        return cls(
+            data_df,
+            max_seq_len,
+            seq_vocab,
+            label_dict
+        )

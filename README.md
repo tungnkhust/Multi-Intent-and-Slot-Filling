@@ -84,25 +84,5 @@ accuracy: 0.7955604809706976    sub accuracy : 0.171875    hamming loss: 0.02461
 f1: 0.8603625719664325    precision: 0.8836534737729592    recall: 0.8603625719664325
 accuracy: 0.7807541092727577    sub accuracy : 0.109375    hamming loss: 0.026723710317460316
 
-# best performance
-```python
-# model
-        word_embed_size=64,
-        hidden_size=128,
-        n_rnn_layers=3,
-        dropout=0.4,
-        mode='all',
 
-        # train
-        batch_size=64,
-        max_seq_len=80,
-        early_stop_max_epochs=3,
-        lr=0.01,
-        num_epochs=15,
-        checkpoint=False,
-        thresh=0.8,
-        clip=5
-```
-
-f1: 0.9005895146520146    precision: 0.9624073842823844    recall: 0.9005895146520146
-accuracy: 0.8729352678571429    sub accuracy : 0.25    hamming loss: 0.007678952991452991
+# save train state to continue train.
