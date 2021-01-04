@@ -86,7 +86,7 @@ class Dictionary(object):
             item2idx = {}
             for line in lines:
                 item = line.split(delimiter)
-                item2idx[item[0]] = item[1]
+                item2idx[item[0]] = int(item[1])
         return cls(item2idx)
 
     @classmethod

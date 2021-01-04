@@ -39,9 +39,13 @@ def train(
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print("device: ", device)
 
+    train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
+    val_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=False, drop_last=True)
+
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-3)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1)
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1)
+    scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, steps_per_epoch=len(train_loader), epochs=args.num_epochs)
 
     val_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=False, drop_last=True)
     train_state = make_train_state(args)
@@ -95,33 +99,62 @@ def train(
         torch.save(model.state_dict(), args.model_dir + '/' + args.model_name)
 
 
+def evaluate(model, test_dataset):
+    model.eval()
+    y_pred = []
+    y_true = []
+
+    test_loader = DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False, drop_last=True)
+
+    for i, (x_vector, y_vector, x_mask) in enumerate(test_loader):
+        loss, out = model.forward_loss(x_vector.to(device), y_vector.to(device), x_mask.to(device))
+        y_pred.append((out > args.thresh).long())
+        y_true.append(y_vector.long())
+
+
+    y_true = torch.cat(y_true, dim=-1).cpu().detach().numpy()
+    y_pred = torch.cat(y_pred, dim=-1).cpu().detach().numpy()
+
+    acc, sub_acc, f1, precision, recall, hamming_loss = get_multi_label_metrics(y_true=y_true, y_pred=y_pred)
+    print()
+    print('*'*50 + '*********')
+    print('*'*25 + "EVALUATION" + '*'*25)
+    print()
+    print('f1: {}    precision: {}    recall: {}'.format(f1, precision, recall))
+    print('accuracy: {}    sub accuracy : {}    hamming loss: {}'.format(acc, sub_acc, hamming_loss))
+    print()
+    print('*'*50 + '*********')
+
+    
+
+
 if __name__ == '__main__':
     args = Namespace(
-        data_path='data/MixATIS',
+        data_path='data/ATIS',
         train_name='train.txt',
         val_name='dev.txt',
         test_name='test.txt',
-        model_dir='models/',
+        model_dir='models/ATIS',
         w2c_path='models/pre_trained',
         model_name='multi_intent.pth',
         vocab_name='vocab.txt',
         intent_name='intent.txt',
 
         # model
-        word_embed_size=50,
-        hidden_size=64,
-        n_rnn_layers=2,
-        dropout=0.5,
+        word_embed_size=64,
+        hidden_size=128,
+        n_rnn_layers=3,
+        dropout=0.4,
         mode='all',
 
         # train
-        batch_size=128,
+        batch_size=64,
         max_seq_len=80,
         early_stop_max_epochs=3,
         lr=0.01,
-        num_epochs=200,
+        num_epochs=15,
         checkpoint=False,
-        thresh=0.7,
+        thresh=0.8,
         clip=5
 
         
@@ -181,9 +214,15 @@ if __name__ == '__main__':
         dropout=args.dropout,
         att_method='general'
     )
-    # print(model)
+    print('*'*30)
+    print(model)
+    print('*'*30)
     print('Total parameter       :', get_n_params(model))
+    print('*'*30)
     try:
         train(model, train_dataset, val_dataset, args)
-    except InterruptedError:
+        evaluate(model, test_dataset)
+    except KeyboardInterrupt:
+        print('\nSave last model at {}'.format(args.model_dir + '/' + args.model_name))
         torch.save(model.state_dict(), args.model_dir + '/' + args.model_name)
+        evaluate(model, test_dataset)
