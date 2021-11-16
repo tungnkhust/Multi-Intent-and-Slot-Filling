@@ -86,3 +86,5 @@ accuracy: 0.7807541092727577    sub accuracy : 0.109375    hamming loss: 0.02672
 
 
 # save train state to continue train.
+
+## Now project is stopped and not have slot filtering. We will update later
